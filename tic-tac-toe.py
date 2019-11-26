@@ -69,6 +69,12 @@ def init_socket():
 def close_socket(sock):
   sock.close()  
 
+def to_bytes(string):
+  bytes(string, 'utf-8')
+
+def from_bytes(b):
+  b.decode('utf-8')
+
 def serialize(data):
   return Pykson().to_json(data)
 
@@ -76,25 +82,21 @@ def deserialize(json_str, model):
   return Pykson().from_json(json_str, model)
 
 def get_board(sock):
-  sock.send('get_board')
+  sock.send(to_bytes('get_board'))
   return deserialize(sock.recv(4096))
 
 def set_board(new_board, sock):
-  sock.send('set_board ' + serialize(new_board))
-  return deserialize(sock.recv(4096))
+  sock.send(to_bytes('set_board ' + serialize(new_board)))
+  return deserialize(from_bytes(sock.recv(4096)))
 
 def init_board(sock):
-  sock.send('init_board')
-  return deserialize(sock.recv(4096))
+  sock.send(to_bytes('init_board'))
+  return deserialize(from_bytes(sock.recv(4096)))
 
 def join_room(player, room, sock):
   join_room_input = JoinRoomInput(player=player, room=room)
-  json = serialize(join_room_input)
-  print('join_room ' + json)
-  b = bytearray()
-  sock.send(b.extend(map(ord, 'join_room ')))
-  print("hereeeee")
-  join_room_output = deserialize(sock.recv(4096), JoinRoomOutput)
+  sock.send(to_bytes('join_room ' + serialize(join_room_input)))
+  join_room_output = deserialize(from_bytes(sock.recv(4096)), JoinRoomOutput)
   
 
 def prompt_player_name():

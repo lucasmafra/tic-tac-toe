@@ -34,7 +34,7 @@ class ConnectionHandlerThread (threading.Thread):
         self.connection.send(serialize(response))
     finally: 
       self.connection.close()
-      print 'client disconnected'  
+      print('client disconnected')
 
 def get_board():
   return board
