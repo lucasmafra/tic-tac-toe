@@ -1,17 +1,52 @@
 import socket
 import re # regex package
 import threading
+from contract import Command
+from serialization import serialize, deserialize
 
-board = []
+def new_board():
+  return ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 
-COMMAND_PATTERN = "(\S*)\s?(\S*)"
+def join_room(join_room_input):
+  return {
+    "board": new_board(),
+    "game_status": "your_turn",
+    "opponent_id": "min",
+    "symbol": "X"
+  }
 
-def serialize(data):
-  return ''.join(str(x) for x in data)
+def get_game_status():
+  return {
+    "board": new_board(),
+    "game_status": "your_turn"
+  }
 
-def deserialize(data_str):
-  return list(data_str)
+def fill_position(fill_position_input):
+  return {
+    "message": "ok"
+  }
     
+def parse_request(data):
+  request = deserialize(data)
+  return request["command"], request
+
+def connection_loop(connection):
+  try:
+    while True:
+      data = connection.recv(4096)
+      if not data: break;
+      command, command_input = parse_request(data)
+      if command == Command.JOIN_ROOM.value:
+        response = join_room(command_input)
+      if command == Command.GET_GAME_STATUS.value:
+        response = get_game_status()
+      if command == Command.FILL_POSITION.value:
+        response = fill_position(command_input)
+      connection.send(serialize(response))
+  finally: 
+    connection.close()
+    print('client disconnected')
+  
 class ConnectionHandlerThread (threading.Thread):
   def __init__(self, thread_id, connection, client_address):
     threading.Thread.__init__(self)
@@ -20,39 +55,8 @@ class ConnectionHandlerThread (threading.Thread):
     self.client_address = client_address
       
   def run(self):
-    try:
-      while True:
-        data = self.connection.recv(4096)
-        if not data: break
-        command, command_args = get_command(data)
-        if command == 'get_board':
-          response = get_board()
-        if command == 'set_board':
-          response = set_board(deserialize(command_args))
-        if command == 'init_board':
-          response = init_board()
-        self.connection.send(serialize(response))
-    finally: 
-      self.connection.close()
-      print('client disconnected')
-
-def get_board():
-  return board
-
-def set_board(new_board):
-  global board
-  board = new_board
-  return board
-
-def init_board():
-  return set_board(['1','2','3','4','5','6','7','8','9'])
-
-def get_command(data):
-  match = re.search(COMMAND_PATTERN, data)
-  command = match.groups()[0]
-  command_args = match.groups()[1]
-  return command, command_args
-
+    connection_loop(self.connection)
+    
 def main():
   server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   server.bind(('0.0.0.0', 8080))
