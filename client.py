@@ -49,7 +49,7 @@ def display_status(status, opponent_id, room):
 
 def init_socket():
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  sock.connect(('0.0.0.0', 8080))
+  sock.connect(('ec2-18-231-112-29.sa-east-1.compute.amazonaws.com', 8080))
   return sock
 
 def close_socket(sock):
